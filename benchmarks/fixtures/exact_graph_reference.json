@@ -1,0 +1,50 @@
+{
+  "rows": [
+    {
+      "case": "terminal_hook_3_path",
+      "value": [
+        1,
+        3
+      ]
+    },
+    {
+      "case": "terminal_hook_3_star",
+      "value": [
+        -1,
+        3
+      ]
+    },
+    {
+      "case": "terminal_hook_5_path",
+      "value": [
+        -1,
+        45
+      ]
+    },
+    {
+      "case": "terminal_hook_5_star",
+      "value": [
+        2,
+        15
+      ]
+    },
+    {
+      "case": "terminal_hook_7_path",
+      "value": [
+        2,
+        945
+      ]
+    },
+    {
+      "case": "terminal_hook_7_star",
+      "value": [
+        -16,
+        63
+      ]
+    },
+    {
+      "case": "terminal_cell",
+      "survives": true
+    }
+  ]
+}

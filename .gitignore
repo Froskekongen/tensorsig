@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+generated-docs/
+.generated-site.yml
+site/
+dist/
+benchmarks/results/
+.cache/
+
+*.pdf
