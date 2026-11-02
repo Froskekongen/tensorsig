@@ -14,23 +14,22 @@
 #
 # 1. **Hall Basis Definition**:
 #    - Verify that generated elements satisfy Hall ordering conditions:
-#      - A bracket [a, b] is in Hall basis if a < b (lexicographically)
-#      - If a = [c, d] is a bracket, then d <= c
-#      - If a = [c, d] and b = [e, f] are brackets, then if c < e, then [a, b] is in basis
+#      - Letters are ordered 1..width and precede brackets; brackets are ordered recursively by their left, then right, entries.
+#      - For Hall elements a and b with total degree at most depth, include [a, b] exactly when a < b and, if b = [c, d], c <= a.
 #
 # 2. **Dimension Formula**:
-#    - Verify that `logsigdim(width, depth)` matches the Witt formula for free Lie algebra dimension
+#    - The homogeneous degree-d dimension is l_d = (1/d) * Σ_{k divides d} μ(d/k) * width^k, where μ is the Möbius function.
+#    - Verify that `logsigdim(width, depth)` equals the cumulative dimension Σ_{d=1}^{depth} l_d.
 #    - For width=2: depth 1→2, depth 2→3, depth 3→5, depth 4→8, etc.
-#    - Formula: dim = (1/d) * Σ(μ(d/k) * width^k) where μ is Möbius function
 #
 # 3. **Basis Completeness**:
-#    - Verify that Hall basis elements span the free Lie algebra
+#    - Verify that Hall basis elements span the free Lie algebra through the retained depth
 #    - Check that all elements are linearly independent
 #    - Verify uniqueness of each basis element
 #
 # 4. **Ordering Properties**:
 #    - Elements should be ordered by depth (lower depth first)
-#    - Within same depth, should be lexicographically ordered
+#    - Within the same depth, use the recursive Hall order above
 #    - Verify that ordering matches esig library output
 #
 # ## 2. Lie Bracket Operations (`src/tensorsig/tensor_ops/products.py`)
@@ -74,17 +73,17 @@
 #      - - 1/24 [b, [a, [a, b]]] (depth ≥ 4)
 #
 # 2. **Associativity Property**:
-#    - BCH(BCH(a, b), c) should relate to BCH(a, BCH(b, c)) via higher-order terms
-#    - This is complex but should be verified for small depth
+#    - BCH(BCH(a, b), c) = BCH(a, BCH(b, c)) when every operation uses the same homogeneous depth truncation.
+#    - This identity is exact in the truncated algebra; numerical checks require floating-point tolerances.
 #
 # 3. **Special Cases**:
 #    - BCH(a, 0) = a
 #    - BCH(0, b) = b
-#    - BCH(a, -a) ≈ 0 (for small a)
+#    - BCH(a, -a) = 0 in exact arithmetic, without a smallness assumption
 #
-# 4. **Truncation Error**:
-#    - Verify that truncation to depth d gives correct result up to that depth
-#    - Check error bounds for truncated BCH formula
+# 4. **Truncation Convention**:
+#    - Verify that all homogeneous terms through depth d are retained correctly.
+#    - Discard terms above depth d consistently in every intermediate operation.
 #
 # ## 4. Log-Signature Computation (`src/tensorsig/classical/log_signature.py`)
 #
@@ -97,7 +96,7 @@
 # ### Mathematical Properties to Verify:
 #
 # 1. **Exponential Relationship**:
-#    - Verify: signature(path) = exp(log_signature(path)) (up to truncation)
+#    - Reconstruct the Lie element from log-signature coordinates before taking its tensor-algebra exponential; through the retained depth, this equals signature(path).
 #    - This is the fundamental relationship between signature and log-signature
 #    - Check: exp(log_sig) should match signature for simple paths
 #
@@ -106,8 +105,8 @@
 #    - For paths X and Y: log_sig(X * Y) = BCH(log_sig(X), log_sig(Y))
 #
 # 3. **Path Increment Property**:
-#    - For a single increment dx, verify: log_sig ≈ dx (at depth 1)
-#    - For small increments, higher-order terms should be small
+#    - For a single straight increment dx, the degree-one log-signature is dx and every higher retained degree is zero.
+#    - This holds for any increment size in exact arithmetic; numerical checks require floating-point tolerances.
 #
 # 4. **Projection Correctness**:
 #    - Verify that projection onto Hall basis extracts correct coefficients
@@ -116,7 +115,7 @@
 #
 # 5. **Dimension Consistency**:
 #    - Verify that output dimension matches logsigdim(width, depth)
-#    - Check that log-signature dimension < signature dimension
+#    - For positive width, log-signature and signature dimensions are equal at depth 1; log-signature dimension is smaller at every depth >= 2.
 #
 # 6. **Special Cases**:
 #    - Zero path: log_sig(0) = 0

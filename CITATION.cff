@@ -1,10 +1,9 @@
 cff-version: 1.2.0
 message: >-
-  If you use tensorsig, please cite the software release.
+  If you use tensorsig, please cite the software version or commit you used.
 type: software
 title: tensorsig
 version: "0.1.0"
-date-released: "2026-11-01"
 abstract: >-
   Differentiable tensor signatures, offset-coded signatures, and
   log-signatures for PyTorch.
@@ -17,5 +16,5 @@ keywords:
   - signatures
   - time series
 repository-code: https://github.com/Froskekongen/tensorsig
-url: https://froskekongen.github.io/tensorsig/
+url: https://github.com/Froskekongen/tensorsig
 license: MIT

@@ -1,5 +1,5 @@
 site_name: tensorsig
-site_description: Differentiable tensor signatures and log-signatures in PyTorch
+site_description: Differentiable tensor signatures, offset-coded signatures, and log-signatures for PyTorch.
 site_url: https://froskekongen.github.io/tensorsig/
 docs_dir: generated-docs
 site_dir: site

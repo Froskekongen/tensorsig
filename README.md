@@ -3,15 +3,20 @@
 `tensorsig` provides differentiable signature, log-signature, and offset-coded
 signature features for PyTorch.
 
-The public API may change between `0.x` releases.
+The first release is being prepared. The public API may change between `0.x`
+releases.
 
 ## Installation
 
 `tensorsig` requires Python 3.14 or newer and PyTorch 2.14 or newer.
 
+Until the first PyPI release, install from a checkout of this repository:
+
 ```console
-python -m pip install tensorsig
+python -m pip install .
 ```
+
+After publication, install with `python -m pip install tensorsig`.
 
 ## Quick start
 
@@ -45,6 +50,8 @@ Start with the practitioner guides to
 [signatures and logsignatures](https://froskekongen.github.io/tensorsig/signatures/).
 The complete callable surface is in the
 [API reference](https://froskekongen.github.io/tensorsig/api/).
+The hosted documentation will become available with the first release. Until
+then, use the local preview described under [Development](#development).
 
 ## Choosing local features
 
@@ -63,8 +70,8 @@ across both families and run before window extraction.
 
 ## Citing
 
-If you use `tensorsig`, cite the software version you used. Citation metadata
-is provided in
+If you use `tensorsig`, cite the software version or commit you used. Citation
+metadata is provided in
 [`CITATION.cff`](https://github.com/Froskekongen/tensorsig/blob/main/CITATION.cff),
 which GitHub exposes through **Cite this repository** in APA and BibTeX formats.
 
@@ -102,10 +109,11 @@ Python guides or docstrings, rerun the script to regenerate the documentation.
 
 Validate a prepared release with `scripts/release.sh --check X.Y.Z`, then publish
 it from clean `main` with `scripts/release.sh X.Y.Z`. Keep the package version and
-`CITATION.cff` version/date aligned. GitHub Actions publishes to PyPI and deploys
-the documentation when the GitHub Release is published. The PyPI Trusted
-Publisher and GitHub Pages Actions source must be configured before the first
-release.
+`CITATION.cff` version aligned, and set `date-released` in `CITATION.cff` to the
+actual release date before running the release checks. GitHub Actions publishes
+to PyPI and deploys the documentation when the GitHub Release is published. The
+PyPI Trusted Publisher and GitHub Pages Actions source must be configured before
+the first release.
 
 ## License
 
