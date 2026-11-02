@@ -97,8 +97,8 @@ def test_shared_program_counts_prefixes_once_and_high_depth_has_no_ambient_indic
 
 
 def test_structural_operations_do_not_use_numerical_decoder(monkeypatch):
-    import tensorsig.offset_coded_signatures.plan as plans
-    import tensorsig.offset_coded_signatures.chronological_words as words_module
+    import tensorsig.offset_coded_signatures.plans as plans
+    import tensorsig.offset_coded_signatures._charts.chronological as words_module
 
     def forbidden(*args, **kwargs):
         raise AssertionError("ambient decoder construction")

@@ -3,11 +3,11 @@ import itertools
 import pytest
 import torch
 
-from tensorsig.offset_coded_signatures.alphabet import OffsetCode
-from tensorsig.offset_coded_signatures.increment_signature import (
-    signature_levels_from_increment_windows,
+from tensorsig.offset_coded_signatures.codes import OffsetCode
+from tensorsig.tensor_ops.series import (
+    signature_levels_from_increments,
 )
-from tensorsig.offset_coded_signatures.pascal_decoder import _PascalDecoder
+from tensorsig.offset_coded_signatures._charts.pascal import _PascalDecoder
 
 
 def _words(window: int, dimension: int, channels: int, depth: int) -> torch.Tensor:
@@ -52,7 +52,7 @@ def test_decoder_values_and_vjps_match_dense(
     )
     increments.requires_grad_()
     lifted = torch.einsum("bnrc,rp->bnrcp", increments, code.matrix).flatten(-2)
-    dense = signature_levels_from_increment_windows(lifted, depth)[-1].flatten(2)
+    dense = signature_levels_from_increments(lifted, depth)[-1].flatten(2)
     features = dense.index_select(-1, _flat_indices(words, width))
     expected = dense.index_select(-1, _flat_indices(targets, width))
     actual = decoder.decode(features, targets)
@@ -180,7 +180,7 @@ def test_low_precision_decoder_values_and_vjps(
         requires_grad=True,
     )
     lifted = torch.einsum("bnrc,rp->bnrcp", increments, code.matrix).flatten(-2)
-    dense = signature_levels_from_increment_windows(lifted, 2)[-1].flatten(2)
+    dense = signature_levels_from_increments(lifted, 2)[-1].flatten(2)
     features = dense.index_select(-1, _flat_indices(words, 4))
     actual = decoder.decode(features, targets)
     expected = dense.index_select(-1, _flat_indices(targets, 4))

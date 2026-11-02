@@ -35,6 +35,7 @@ __all__ = [
     "signature_inverse",
     "signature_multiply",
     "batch_restricted_exp",
+    "signature_levels_from_increments",
 ]
 
 
@@ -374,6 +375,42 @@ def batch_restricted_exp(input: Tensor, depth: int) -> list[Tensor]:
     for i in range(2, depth + 1):
         ret.append(tensor_product(ret[-1], input / i, shared_dims=1))
     return ret
+
+
+def signature_levels_from_increments(
+    increments: Tensor,
+    max_depth: int,
+) -> list[Tensor]:
+    """Multiply segment exponentials into homogeneous signature levels.
+
+    Parameters
+    ----------
+    increments : Tensor
+        Floating-point increments shaped ``(..., steps, width)``. Any leading
+        batch or window axes are preserved; steps and width must be positive.
+    max_depth : int
+        Maximum homogeneous degree, a positive integer.
+
+    Returns
+    -------
+    list[Tensor]
+        Non-scalar levels, with level ``k - 1`` shaped
+        ``(..., width, ..., width)`` using ``k`` trailing width axes.
+    """
+    max_depth = _positive_integer(max_depth, "max_depth")
+    if increments.ndim < 2:
+        raise ValueError("increments must have shape (..., steps, width).")
+    if not increments.dtype.is_floating_point:
+        raise ValueError("increments must have a floating-point dtype.")
+    steps, width = increments.shape[-2:]
+    if steps < 1 or width < 1:
+        raise ValueError("increments must have positive step and width axes.")
+    leading_shape = increments.shape[:-2]
+    flattened = increments.reshape(-1, steps, width)
+    levels = batch_restricted_exp(flattened[:, 0], depth=max_depth)
+    for increment in flattened[:, 1:].unbind(dim=1):
+        levels = _batch_mult_fused_restricted_exp(increment, levels)
+    return [level.reshape(*leading_shape, *level.shape[1:]) for level in levels]
 
 
 def _batch_mult_fused_restricted_exp(z: Tensor, A: list[Tensor]) -> list[Tensor]:

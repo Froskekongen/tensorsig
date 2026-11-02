@@ -25,11 +25,11 @@ from tensorsig.classical.windows import windowed_signature
 from tensorsig.tensor_ops.series import unflatten_signature_levels
 
 from .codes import OffsetCode
-from .compact_sliding import _rolling_chronological_features
+from ._sliding import _rolling_chronological_features
 from .gap_factorized_volterra import GapFactorizedVolterra as GapFactorizedVolterra
 from .plans import LogSignaturePlan, PolynomialPlan, SignaturePlan
-from .sliding import _rolling_coded_signature_levels
-from .utils import validate_path_points
+from ._sliding import _rolling_coded_signature_levels
+from .windows import validate_path_points
 from .windows import increment_windows
 
 

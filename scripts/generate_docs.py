@@ -264,6 +264,17 @@ def _slug(name: str) -> str:
     return words.replace("_", "-").lower()
 
 
+def _symbol_filename(symbol: ApiSymbol, section: ApiSection) -> str:
+    """Keep function URLs stable when a class name has the same slug."""
+    slug = _slug(symbol.name)
+    if symbol.kind == "class" and any(
+        other.name != symbol.name and _slug(other.name) == slug
+        for other in section.symbols
+    ):
+        slug += "-class"
+    return f"{slug}.md"
+
+
 def build_page_model(api: ApiModel) -> PageModel:
     """Build one stable page per symbol plus source-module landing pages."""
     pages: list[Page] = []
@@ -272,7 +283,7 @@ def build_page_model(api: ApiModel) -> PageModel:
         directory = _module_dir(section.module, api.package)
         symbol_links = []
         for symbol in section.symbols:
-            filename = f"{_slug(symbol.name)}.md"
+            filename = _symbol_filename(symbol, section)
             path = directory / filename
             preferred = symbol.public_paths[0]
             body = (
@@ -306,7 +317,7 @@ def build_page_model(api: ApiModel) -> PageModel:
         directory = _module_dir(module, api.package)
         children = [nav_node(child) for child in section.children]
         children.extend(
-            NavNode(symbol.name, directory / f"{_slug(symbol.name)}.md")
+            NavNode(symbol.name, directory / _symbol_filename(symbol, section))
             for symbol in section.symbols
         )
         label = "API reference" if module == api.package else module.rsplit(".", 1)[-1]
@@ -378,6 +389,13 @@ def _navigation(guides: dict[Path, str], model: PageModel) -> str:
     """Render deterministic site navigation without another schema layer."""
     lines = ["nav:", "  - Home: index.md"]
     lines.extend(_guide_section(guides, Path("signatures/index.md"), "Signatures"))
+    lines.extend(
+        _guide_section(
+            guides,
+            Path("offset_coded_signatures/index.md"),
+            "Offset-coded signatures",
+        )
+    )
     development_pages = [path for path in guides if path.parts[:1] == ("development",)]
     if development_pages:
         lines.append("  - Development:")

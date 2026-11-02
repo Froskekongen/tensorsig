@@ -23,7 +23,7 @@ from tensorsig.offset_coded_signatures.active_word_log import (
     active_word_log_signature,
     compile_active_word_log,
 )
-from tensorsig.offset_coded_signatures.word_program import (
+from tensorsig.offset_coded_signatures._word_program import (
     _compile_word_log_readout,
     _compile_word_program,
 )
@@ -175,7 +175,7 @@ def test_mps_active_and_tensor_bridge():
     # Compile CPU COO first: device binding must not try to move unsupported COO.
     assert plan._word_bridge.quotient_matrix.layout == torch.sparse_coo
     plan = plan.to(device="mps", dtype=torch.float32)
-    from tensorsig.offset_coded_signatures.quotients import WindowLogSignature
+    from tensorsig.offset_coded_signatures.windows import WindowLogSignature
 
     runtime = WindowLogSignature(plan, 3)
     x = (torch.randn(1, 7, 2, device="mps") * 0.03).requires_grad_()

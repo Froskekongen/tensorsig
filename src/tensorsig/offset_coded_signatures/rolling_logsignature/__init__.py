@@ -16,8 +16,8 @@ from .._lie_quotients.rules import (
     ProjectedAlphabet,
     TemporalDegree,
 )
-from ..alphabet import _positive_integer
-from ..utils import unfold_increments
+from ..codes import _positive_integer
+from ..windows import unfold_increments
 from ._bch import DegreeOneBCH
 from ._compile import Transport, pascal_transport
 from ._program import BCHProgram

@@ -32,6 +32,7 @@ def test_public_surface_is_organized_by_source_module() -> None:
         "signature_inverse",
         "signature_multiply",
         "batch_restricted_exp",
+        "signature_levels_from_increments",
     ]
 
     for old_name in (

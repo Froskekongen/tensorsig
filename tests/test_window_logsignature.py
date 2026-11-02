@@ -8,9 +8,9 @@ from tensorsig.offset_coded_signatures.quotients import (
     OffsetAlphabet,
     ProjectedAlphabet,
     TemporalDegree,
-    WindowLogSignature,
     compile_lie_quotient,
 )
+from tensorsig.offset_coded_signatures.windows import WindowLogSignature
 
 
 @pytest.mark.parametrize("algorithm", ["auto", "pbw", "active", "rolling", "scan"])
@@ -103,7 +103,7 @@ def test_inspecting_generated_code_cannot_break_pascal_certification():
 
 
 def test_generated_pascal_code_is_cached_by_device_and_dtype(monkeypatch):
-    from tensorsig.offset_coded_signatures import window_logsignature as module
+    from tensorsig.offset_coded_signatures import windows as module
 
     plan = compile_lie_quotient(
         LieQuotient(TemporalDegree(1)), ProjectedAlphabet.newton(2, 1), 2
@@ -131,7 +131,7 @@ def test_generated_pascal_code_is_cached_by_device_and_dtype(monkeypatch):
 
 
 def test_custom_code_is_reconverted_after_updates_with_connected_gradients(monkeypatch):
-    from tensorsig.offset_coded_signatures import window_logsignature as module
+    from tensorsig.offset_coded_signatures import windows as module
 
     plan = compile_lie_quotient(
         LieQuotient(TemporalDegree(1)), ProjectedAlphabet.newton(2, 1), 2
@@ -402,7 +402,7 @@ def test_public_typed_sparse_matches_the_named_benchmark_candidate(order):
 @pytest.mark.parametrize("graph", [False, True])
 def test_auto_quotient_eligibility_is_computed_once_at_construction(monkeypatch, graph):
     from types import SimpleNamespace
-    from tensorsig.offset_coded_signatures import window_logsignature as module
+    from tensorsig.offset_coded_signatures import windows as module
     from tensorsig.offset_coded_signatures.quotients import DependenceGraph
 
     rules = [TemporalDegree(1)]
@@ -475,7 +475,7 @@ def test_withdrawn_tensor_region_refuses_auto_but_preserves_explicit_tensor(
 
 
 def test_explicit_tensor_dispatch_preserves_fixed_chunks(monkeypatch):
-    from tensorsig.offset_coded_signatures import window_logsignature as module
+    from tensorsig.offset_coded_signatures import windows as module
 
     runtime, _ = policy_metadata(8, 4097, 8, False)
     # Use real CPU tensor views to verify explicit dispatch without a GPU allocation.

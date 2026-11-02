@@ -6,9 +6,7 @@ import torch
 from tensorsig.experimental.offset_coded_signatures.spectral_eulerian import (
     spectral_eulerian_project_columns,
 )
-from tensorsig.offset_coded_signatures.primitive_chart import (
-    _eulerian_project_columns,
-)
+from tensorsig.algebra.eulerian import eulerian_project_columns
 
 
 @pytest.mark.parametrize(
@@ -23,7 +21,7 @@ def test_projection_matches_factorial_values_vjps_and_idempotence(depth, dtype):
     )
     cotangent = torch.randn(matrix.shape, dtype=dtype, generator=generator)
     actual = spectral_eulerian_project_columns(matrix, 2, depth)
-    expected = _eulerian_project_columns(matrix, 2, depth)
+    expected = eulerian_project_columns(matrix, 2, depth)
     tolerance = 2e-5 if dtype == torch.float32 else 3e-12
     torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
     torch.testing.assert_close(
@@ -42,7 +40,7 @@ def test_projection_preserves_cut_multiplicity_and_accepts_noncontiguous_columns
     assert not matrix.is_contiguous()
     torch.testing.assert_close(
         spectral_eulerian_project_columns(matrix, 2, 4),
-        _eulerian_project_columns(matrix, 2, 4),
+        eulerian_project_columns(matrix, 2, 4),
         atol=1e-13,
         rtol=1e-13,
     )
