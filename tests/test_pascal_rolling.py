@@ -4,10 +4,10 @@ import pytest
 import torch
 
 from tensorsig.offset_coded_signatures.codes import OffsetCode
-from tensorsig.offset_coded_signatures.compact_sliding import _compile_pascal_transport
+from tensorsig.offset_coded_signatures._sliding import _compile_pascal_transport
 from tensorsig.offset_coded_signatures.coordinates import WordSelection
-from tensorsig.offset_coded_signatures.increment_signature import (
-    signature_levels_from_increment_windows,
+from tensorsig.tensor_ops.series import (
+    signature_levels_from_increments,
 )
 from tensorsig.offset_coded_signatures.layers import LocalFeatures
 from tensorsig.offset_coded_signatures.plans import LocalRealization
@@ -18,7 +18,7 @@ from tensorsig.tensor_ops.linear import apply_linear_map_to_signature_levels
 def _dense_reference(path, matrix, plan, stride):
     windows = increment_windows(path, plan.window, stride)
     lifted = torch.einsum("bnrc,re->bnrce", windows, matrix).flatten(-2)
-    levels = signature_levels_from_increment_windows(lifted, max(plan.depths))
+    levels = signature_levels_from_increments(lifted, max(plan.depths))
     width = plan.output_dimension
     outputs = []
     for depth, words in zip(plan.depths, plan.word_indices, strict=True):

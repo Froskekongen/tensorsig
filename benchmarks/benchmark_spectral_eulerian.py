@@ -22,7 +22,7 @@ import time
 import torch
 
 from tensorsig.experimental.offset_coded_signatures import spectral_eulerian
-from tensorsig.offset_coded_signatures import primitive_chart
+from tensorsig.algebra import eulerian
 
 
 def main() -> None:
@@ -53,7 +53,7 @@ def main() -> None:
     ):
         parser.error("limits must be positive and tolerances finite and nonnegative")
     torch.set_num_threads(args.threads)
-    package = Path(primitive_chart.__file__).parent
+    package = Path(eulerian.__file__).parent
     digest = hashlib.sha256()
     for path in sorted(package.rglob("*.py")):
         digest.update(str(path.relative_to(package)).encode())
@@ -133,7 +133,7 @@ def main() -> None:
         cotangent = torch.randn(matrix.shape, generator=generator, dtype=matrix.dtype)
 
         def baseline(x):
-            return primitive_chart._eulerian_project_columns(x, width, depth)
+            return eulerian.eulerian_project_columns(x, width, depth)
 
         def candidate(x):
             return spectral_eulerian.spectral_eulerian_project_columns(x, width, depth)

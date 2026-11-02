@@ -1,4 +1,10 @@
-"""Composable path augmentations for local signature pipelines."""
+"""Composable path lifts for signature and logsignature pipelines.
+
+Each augmentation maps batched path points ``(batch, length, channels)`` to
+batched path points. Compose any number of lifts with ``torch.nn.Sequential``
+before a classical signature or an offset-coded feature layer. FIR filtering
+uses the full path history before windows are extracted.
+"""
 
 from __future__ import annotations
 
@@ -8,12 +14,9 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 
-from ..classical.windows import windowed_log_signature
-
 
 _PaddingMode = Literal["repeat", "zero"]
 _FilterInit = Literal["uniform", "normal", "zeros"]
-_LogSignatureMode = Literal["words", "hall"]
 
 
 def _normalize_padding(padding: str) -> _PaddingMode:
@@ -32,15 +35,6 @@ def _normalize_init(init: str) -> _FilterInit:
     if normalized not in {"uniform", "normal", "zeros"}:
         raise ValueError("init must be one of 'uniform', 'normal', or 'zeros'.")
     return cast(_FilterInit, normalized)
-
-
-def _normalize_log_signature_mode(mode: str) -> _LogSignatureMode:
-    if not isinstance(mode, str):
-        raise TypeError("mode must be a string.")
-    normalized = mode.lower()
-    if normalized not in {"words", "hall"}:
-        raise ValueError("mode must be either 'words' or 'hall'.")
-    return cast(_LogSignatureMode, normalized)
 
 
 def _validate_integer(name: str, value: int, *, minimum: int) -> int:
@@ -263,95 +257,4 @@ class PairwiseProductAugmentation(torch.nn.Module):
         )
 
 
-class CausalWindowedLogSignature(torch.nn.Module):
-    """Apply explicit causal path augmentations before windowed logsignatures.
-
-    Parameters
-    ----------
-    fir : CausalFIRAugmentation
-        Learned causal augmentation applied first.
-    depth : int
-        Logsignature truncation depth.
-    window_size : int
-        Number of path points per window.
-    hop_size : int, optional
-        Number of path points between window starts.
-    pairwise : PairwiseProductAugmentation, optional
-        Explicit nonlinear augmentation applied after the FIR augmentation.
-    mode : {"words", "hall"}, optional
-        Logsignature coordinate basis.
-    """
-
-    def __init__(
-        self,
-        fir: CausalFIRAugmentation,
-        *,
-        depth: int,
-        window_size: int,
-        hop_size: int = 1,
-        pairwise: PairwiseProductAugmentation | None = None,
-        mode: str = "words",
-    ) -> None:
-        super().__init__()
-        if not isinstance(fir, CausalFIRAugmentation):
-            raise TypeError("fir must be a CausalFIRAugmentation.")
-        if pairwise is not None and not isinstance(
-            pairwise, PairwiseProductAugmentation
-        ):
-            raise TypeError("pairwise must be a PairwiseProductAugmentation or None.")
-        if pairwise is not None and pairwise.in_channels != fir.out_channels:
-            raise ValueError(
-                "pairwise input channels must equal the FIR augmentation output "
-                f"channels ({fir.out_channels})."
-            )
-
-        self.fir = fir
-        self.pairwise = pairwise
-        self.depth = _validate_integer("depth", depth, minimum=1)
-        self.window_size = _validate_integer("window_size", window_size, minimum=2)
-        self.hop_size = _validate_integer("hop_size", hop_size, minimum=1)
-        self.mode = _normalize_log_signature_mode(mode)
-
-    @property
-    def embedded_channels(self) -> int:
-        """Return the channel count after FIR augmentation."""
-        return self.fir.out_channels
-
-    @property
-    def signature_channels(self) -> int:
-        """Return the channel count passed to the logsignature."""
-        return (
-            self.fir.out_channels
-            if self.pairwise is None
-            else self.pairwise.out_channels
-        )
-
-    def augment(self, path: Tensor) -> Tensor:
-        """Return the explicitly composed path augmentation."""
-        augmented = self.fir(path)
-        return augmented if self.pairwise is None else self.pairwise(augmented)
-
-    def forward(self, path: Tensor) -> Tensor:
-        """Return windowed logsignatures of the augmented path."""
-        return windowed_log_signature(
-            self.augment(path),
-            depth=self.depth,
-            window_size=self.window_size,
-            hop_size=self.hop_size,
-            mode=self.mode,
-        )
-
-    def extra_repr(self) -> str:
-        return (
-            f"depth={self.depth}, window_size={self.window_size}, "
-            f"hop_size={self.hop_size}, embedded_channels={self.embedded_channels}, "
-            f"signature_channels={self.signature_channels}, mode={self.mode!r}"
-        )
-
-
-__all__ = [
-    "CausalFIRAugmentation",
-    "CausalWindowedLogSignature",
-    "PairwiseProductAugmentation",
-    "causal_fir",
-]
+__all__ = ["causal_fir", "CausalFIRAugmentation", "PairwiseProductAugmentation"]

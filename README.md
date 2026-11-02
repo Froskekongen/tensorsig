@@ -46,6 +46,21 @@ Start with the practitioner guides to
 The complete callable surface is in the
 [API reference](https://froskekongen.github.io/tensorsig/api/).
 
+## Choosing local features
+
+| Need | Start with |
+| --- | --- |
+| Classical logsignatures after path lifts | `tensorsig.augmentations` followed by `classical.windows.WindowedLogSignature` in `torch.nn.Sequential` |
+| Signatures or logsignatures retaining local offset information | `offset_coded_signatures.plans.LocalRealization` with a `codes.OffsetCode` |
+| Scalar polynomials in physical increments | `offset_coded_signatures.plans.compile_polynomial` |
+| Apply a compiled local plan to a path | `offset_coded_signatures.layers.LocalFeatures` or `LocalLinear` |
+| Explicit quotient window algorithms on increment streams | `offset_coded_signatures.windows.WindowLogSignature` |
+
+The [offset-coded signatures guide](https://froskekongen.github.io/tensorsig/offset_coded_signatures/)
+shows these constructions and their input conventions. Offset-coded windows
+count increments; classical windows count points. Path augmentations are shared
+across both families and run before window extraction.
+
 ## Citing
 
 If you use `tensorsig`, cite the software version you used. Citation metadata

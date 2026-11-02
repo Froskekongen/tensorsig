@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-import itertools
 import math
 
 import torch
 from torch import Tensor
 
+from tensorsig.algebra.eulerian import eulerian_project_columns
 from tensorsig.algebra.lyndon import lyndon_words
 from tensorsig.algebra.lyndon_words import WordsBasisElement
 
-from .chronological_words import (
+from .chronological import (
     _ChronologicalLevel,
     _build_chronological_level,
     _canonical_value_basis,
@@ -58,24 +58,6 @@ def _rank_revealing_subspaces(
         )
     rank = int((singular_values > resolved).sum().item())
     return left[:, :rank], right_transpose[:rank].T, resolved
-
-
-def _eulerian_project_columns(matrix: Tensor, width: int, depth: int) -> Tensor:
-    """Apply the first Eulerian idempotent without forming its dense matrix."""
-    expected_rows = width**depth
-    if matrix.ndim != 2 or matrix.shape[0] != expected_rows:
-        raise ValueError(
-            f"Expected matrix shape ({expected_rows}, columns), got {tuple(matrix.shape)}."
-        )
-    tensor = matrix.reshape(*([width] * depth), matrix.shape[1])
-    projected = torch.zeros_like(tensor)
-    for permutation in itertools.permutations(range(depth)):
-        descents = sum(
-            permutation[index] > permutation[index + 1] for index in range(depth - 1)
-        )
-        coefficient = (-1.0) ** descents / (depth * math.comb(depth - 1, descents))
-        projected = projected + coefficient * tensor.permute(*permutation, depth)
-    return projected.reshape(expected_rows, matrix.shape[1])
 
 
 def _flat_word_index(word: Sequence[int], width: int) -> int:
@@ -359,7 +341,7 @@ def compile_primitive_chart(
         rank_tolerance=rank_tolerance,
     )
     width = code_dim * in_channels
-    primitive_values = _eulerian_project_columns(
+    primitive_values = eulerian_project_columns(
         signature_basis.reconstruction_matrix,
         width,
         depth,

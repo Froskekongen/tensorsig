@@ -5,6 +5,13 @@ linear map on offsets and channels, a coordinate chart or Lie quotient, and an
 optional PyTorch readout. Plans compile the fixed algebra once; layers reuse
 that plan across every valid sliding window of a batched path.
 
+Start with ``codes.OffsetCode``, ``plans.LocalRealization``, and
+``layers.LocalFeatures``. ``coordinates`` selects returned functionals;
+``quotients`` defines algebraic relations. ``windows`` provides increment-window
+extraction and direct quotient evaluation. The remaining public modules expose
+advanced evaluation engines and offline rank or graph certificates. Private
+modules beginning with ``_`` implement these constructions.
+
 ``window`` and ``stride`` count increments rather than path points. Dense
 operations are differentiable with respect to both the path and any trainable
 alphabet map.
@@ -15,7 +22,6 @@ from . import coordinates as coordinates
 from . import plans as plans
 from . import quotients as quotients
 from . import layers as layers
-from . import augmentations as augmentations
 from . import windows as windows
 from . import graph_queries as graph_queries
 
@@ -30,7 +36,6 @@ __all__ = [
     "plans",
     "quotients",
     "layers",
-    "augmentations",
     "windows",
     "graph_queries",
     "active_word_log",

@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from fractions import Fraction
 from functools import lru_cache
-from itertools import permutations
-from math import comb
 from typing import Callable, TypeAlias
 
 import torch
 from torch import Tensor
+
+from tensorsig.algebra.eulerian import eulerian_permutations
 
 from .compiler import LieQuotientPlan
 from .rules import ProjectedAlphabet
@@ -97,28 +97,6 @@ def _normalizer(
         return ((word, Fraction(1)),)
 
     return normalize
-
-
-@lru_cache(maxsize=None)
-def _eulerian_schedule(
-    length: int,
-) -> tuple[tuple[tuple[int, ...], Fraction], ...]:
-    """Return the first-Eulerian-idempotent permutation schedule."""
-    if length < 1:
-        return ()
-    schedule = []
-    for permutation in permutations(range(length)):
-        descents = sum(
-            left > right for left, right in zip(permutation, permutation[1:])
-        )
-        sign = -1 if descents % 2 else 1
-        schedule.append(
-            (
-                permutation,
-                Fraction(sign, length * comb(length - 1, descents)),
-            )
-        )
-    return tuple(schedule)
 
 
 def _runtime_matrix(matrix: Tensor) -> Tensor:
@@ -380,7 +358,7 @@ def compile_quotient_signature_plan(
         )
         for source, monomial in enumerate(monomials):
             eulerian: dict[PBWMonomial, Fraction] = {}
-            for permutation, coefficient in _eulerian_schedule(len(monomial)):
+            for permutation, coefficient in eulerian_permutations(len(monomial)):
                 word = tuple(monomial[position] for position in permutation)
                 _add_scaled(eulerian, normalize(word), coefficient)
             nonprimitive = [

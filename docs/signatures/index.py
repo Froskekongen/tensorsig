@@ -50,7 +50,7 @@ torch.testing.assert_close(
 # | Fewer independent coordinates | Logsignature |
 # | A prefix feature after every increment | Streaming signature or logsignature |
 # | One feature per overlapping point window | Windowed signature or logsignature |
-# | Relative position inside a local increment window | [Offset-coded signatures](../api/offset-coded-signatures/index.md) |
+# | Relative position inside a local increment window | [Offset-coded signatures](../offset_coded_signatures/index.md) |
 #
 # A linear model on signatures is not generally equivalent to a linear model on
 # logsignatures: converting between the two representations is nonlinear.

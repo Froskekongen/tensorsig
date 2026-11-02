@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tensorsig.offset_coded_signatures.phase_kernels import (
+from tensorsig.offset_coded_signatures.diagnostics import (
     cumulative_offset_clock_matrix,
     finite_difference_contrast,
     invisible_offset_contrasts,

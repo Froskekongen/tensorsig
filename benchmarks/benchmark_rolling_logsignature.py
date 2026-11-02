@@ -25,7 +25,7 @@ from tensorsig.offset_coded_signatures.quotients import (
     LieQuotient,
     TemporalDegree,
 )
-from tensorsig.offset_coded_signatures.window_logsignature import WindowLogSignature
+from tensorsig.offset_coded_signatures.windows import WindowLogSignature
 from tensorsig.offset_coded_signatures.rolling_logsignature import RollingLogSignature
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

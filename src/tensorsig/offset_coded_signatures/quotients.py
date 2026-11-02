@@ -28,8 +28,6 @@ from ._lie_quotients.compiler import LieQuotientPlan as LieQuotientPlan
 from ._lie_quotients.compiler import compile_lie_quotient as compile_lie_quotient
 from ._lie_quotients.rules import OffsetAlphabet as OffsetAlphabet
 from ._lie_quotients.rules import ProjectedAlphabet as ProjectedAlphabet
-from .window_logsignature import WindowLogSignature as WindowLogSignature
-from .window_logsignature import WindowSelection as WindowSelection
 
 __all__ = [
     "LieQuotient",
@@ -45,6 +43,4 @@ __all__ = [
     "compile_lie_quotient",
     "OffsetAlphabet",
     "ProjectedAlphabet",
-    "WindowLogSignature",
-    "WindowSelection",
 ]

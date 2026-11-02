@@ -7,7 +7,7 @@ import math
 import torch
 from torch import Tensor
 
-from .alphabet import OffsetCode
+from ..codes import OffsetCode
 
 
 class _PascalDecoder:

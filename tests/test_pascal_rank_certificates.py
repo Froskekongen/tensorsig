@@ -8,6 +8,7 @@ from math import comb
 import pytest
 import torch
 
+from tensorsig.algebra.eulerian import eulerian_project_columns
 from tensorsig.offset_coded_signatures.pascal_certificate import (
     _eliminate,
     binary_pascal_rank_certificate,
@@ -19,9 +20,8 @@ from tensorsig.offset_coded_signatures.pascal_rank import (
 from tensorsig.experimental.offset_coded_signatures.spectral_eulerian import (
     spectral_eulerian_project_columns,
 )
-from tensorsig.offset_coded_signatures.primitive_chart import (
+from tensorsig.offset_coded_signatures._charts.primitive import (
     _build_signature_source_basis,
-    _eulerian_project_columns,
 )
 
 
@@ -61,7 +61,7 @@ def test_projectors_against_value_side_profile_not_coordinate_filtration(degree)
         code, in_channels=1, depth=degree, rank_tolerance=1e-10
     )
     weights = torch.tensor([sum(word) for word in product((0, 1), repeat=degree)])
-    for projector in (_eulerian_project_columns, spectral_eulerian_project_columns):
+    for projector in (eulerian_project_columns, spectral_eulerian_project_columns):
         values = projector(source.reconstruction_matrix, 2, degree)
         for weight, expected in enumerate(binary_pascal_profile(degree, 2)):
             # These are ambient VALUE rows. max_degree cuts signature-source

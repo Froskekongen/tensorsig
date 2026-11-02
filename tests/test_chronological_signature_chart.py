@@ -8,7 +8,7 @@ from tensorsig.classical.signatures import signature
 from tensorsig.offset_coded_signatures.codes import OffsetCode
 from tensorsig.offset_coded_signatures.coordinates import WordSelection
 from tensorsig.offset_coded_signatures.plans import LocalRealization
-from tensorsig.offset_coded_signatures.colored_descent import (
+from tensorsig.offset_coded_signatures._charts.colored_descent import (
     generic_scalar_dimension,
     ribbon_dimension,
 )
@@ -278,7 +278,7 @@ def test_exact_descent_sections_are_the_canonical_channel_orbit_sums(
     depth: int,
     cuts: tuple[int, ...],
 ) -> None:
-    import tensorsig.offset_coded_signatures.chronological_words as words
+    import tensorsig.offset_coded_signatures._charts.chronological as words
 
     section = words._descent_orbit_section(channels, depth, cuts)
     representatives = [
@@ -348,7 +348,7 @@ def test_selection_is_directly_visible_in_public_word_metadata() -> None:
 def test_structural_compilation_does_not_construct_the_dense_decoder(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import tensorsig.offset_coded_signatures.chronological_words as words
+    import tensorsig.offset_coded_signatures._charts.chronological as words
 
     def fail_if_called(*args: object, **kwargs: object) -> None:
         raise AssertionError("dense reference construction was called")
@@ -369,7 +369,7 @@ def test_structural_compilation_does_not_construct_the_dense_decoder(
 def test_structural_decoder_is_built_once_per_level_and_owned_by_the_plan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import tensorsig.offset_coded_signatures.plan as plans
+    import tensorsig.offset_coded_signatures.plans as plans
 
     original = plans._PascalDecoder
     built_depths = []

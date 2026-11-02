@@ -17,9 +17,7 @@ from functools import cache
 from itertools import combinations, permutations, product
 from math import comb, factorial, prod
 
-from tensorsig.offset_coded_signatures._lie_quotients.enveloping import (
-    _eulerian_schedule,
-)
+from tensorsig.algebra.eulerian import eulerian_permutations
 from tensorsig.offset_coded_signatures._lie_quotients.rules import OffsetAlphabet
 from tensorsig.offset_coded_signatures._lie_quotients.trace_compiler import (
     _TraceMonoid,
@@ -119,7 +117,7 @@ def amplitudes(composition):
     result = {}
     subgroup = young_subgroup(composition)
     for block_permutation in subgroup:
-        for place_permutation, coefficient in _eulerian_schedule(sum(composition)):
+        for place_permutation, coefficient in eulerian_permutations(sum(composition)):
             rho = tuple(block_permutation[position] for position in place_permutation)
             add(result, rho, coefficient / len(subgroup))
 
@@ -234,7 +232,7 @@ def unpolarized_image(cell, channels, graph_mask):
     image = {}
     for rows in product(*row_words):
         word = sum(rows, ())
-        for permutation, coefficient in _eulerian_schedule(sum(composition)):
+        for permutation, coefficient in eulerian_permutations(sum(composition)):
             output = monoid.normal_form(
                 tuple(word[position] for position in permutation)
             )

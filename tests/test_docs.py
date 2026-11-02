@@ -27,7 +27,13 @@ DOC_SOURCES = tuple(sorted((ROOT / "docs").rglob("*.py")))
 
 EXPECTED_PUBLIC_TREE = {
     "tensorsig": (
-        ("classical", "algebra", "tensor_ops", "offset_coded_signatures"),
+        (
+            "classical",
+            "augmentations",
+            "algebra",
+            "tensor_ops",
+            "offset_coded_signatures",
+        ),
         (),
     ),
     "tensorsig.classical": (("signatures", "windows", "sparse"), ()),
@@ -38,17 +44,22 @@ EXPECTED_PUBLIC_TREE = {
             "windowed_signature",
             "windowed_log_signature",
             "stream_to_window_signatures",
+            "WindowedLogSignature",
         ),
     ),
     "tensorsig.classical.sparse": (
         (),
         ("compress_path", "signature_sparse", "pad_paths_correctly"),
     ),
-    "tensorsig.algebra": (("hall", "lyndon"), ()),
+    "tensorsig.algebra": (("hall", "lyndon", "eulerian"), ()),
     "tensorsig.algebra.hall": ((), ("hall_basis", "logsigdim", "logsigkeys")),
     "tensorsig.algebra.lyndon": (
         (),
         ("lyndon_words", "logsigdim_words", "logsigkeys_words"),
+    ),
+    "tensorsig.algebra.eulerian": (
+        (),
+        ("eulerian_permutations", "eulerian_project_columns"),
     ),
     "tensorsig.tensor_ops": (("products", "linear", "series"), ()),
     "tensorsig.tensor_ops.products": ((), ("tensor_product", "lie_bracket")),
@@ -68,7 +79,12 @@ EXPECTED_PUBLIC_TREE = {
             "signature_inverse",
             "signature_multiply",
             "batch_restricted_exp",
+            "signature_levels_from_increments",
         ),
+    ),
+    "tensorsig.augmentations": (
+        (),
+        ("causal_fir", "CausalFIRAugmentation", "PairwiseProductAugmentation"),
     ),
     "tensorsig.offset_coded_signatures": (
         (
@@ -77,7 +93,6 @@ EXPECTED_PUBLIC_TREE = {
             "plans",
             "quotients",
             "layers",
-            "augmentations",
             "windows",
             "graph_queries",
             "active_word_log",
@@ -118,24 +133,16 @@ EXPECTED_PUBLIC_TREE = {
             "compile_lie_quotient",
             "OffsetAlphabet",
             "ProjectedAlphabet",
-            "WindowLogSignature",
-            "WindowSelection",
         ),
     ),
     "tensorsig.offset_coded_signatures.layers": (
         (),
         ("LocalFeatures", "LocalLinear", "GapFactorizedVolterra"),
     ),
-    "tensorsig.offset_coded_signatures.augmentations": (
+    "tensorsig.offset_coded_signatures.windows": (
         (),
-        (
-            "causal_fir",
-            "CausalFIRAugmentation",
-            "CausalWindowedLogSignature",
-            "PairwiseProductAugmentation",
-        ),
+        ("increment_windows", "WindowLogSignature", "WindowSelection"),
     ),
-    "tensorsig.offset_coded_signatures.windows": ((), ("increment_windows",)),
     "tensorsig.offset_coded_signatures.active_word_log": (
         (),
         ("ActiveWordLogPlan", "compile_active_word_log", "active_word_log_signature"),
@@ -215,6 +222,9 @@ def test_public_tree_and_pages_come_from_source() -> None:
     assert Path("api/index.md") in paths
     assert Path("api/classical/index.md") in paths
     assert Path("api/classical/signatures/log-signature.md") in paths
+    assert Path("api/classical/windows/windowed-log-signature.md") in paths
+    assert Path("api/classical/windows/windowed-log-signature-class.md") in paths
+    assert len(paths) == len(build_page_model(api).pages)
     assert Path("api/offset-coded-signatures/plans/local-realization.md") in paths
 
 
@@ -370,7 +380,7 @@ def test_rendered_guides_and_generated_tree_are_deterministic(tmp_path: Path) ->
     )
     assert set(signature_guides) <= guides.keys()
     assert guides[Path("index.md")] == (ROOT / "README.md").read_text()
-    assert not any(path.parts[0] == "offset_coded_signatures" for path in guides)
+    assert Path("offset_coded_signatures/index.md") in guides
 
     model = build_page_model(discover_api_model())
     output = tmp_path / "generated-docs"
@@ -381,7 +391,7 @@ def test_rendered_guides_and_generated_tree_are_deterministic(tmp_path: Path) ->
     assert all(path.as_posix() in first_config for path in signature_guides)
     positions = [first_config.index(path.as_posix()) for path in signature_guides]
     assert positions == sorted(positions)
-    assert "offset_coded_signatures/" not in first_config
+    assert "offset_coded_signatures/index.md" in first_config
     assert "api/offset-coded-signatures/plans/local-realization.md" in first_config
 
     generated_api = "\n".join(page.body for page in model.pages)
@@ -501,11 +511,11 @@ def test_generated_docs_build_with_zensical_in_strict_mode(tmp_path: Path) -> No
     search = (site / "search.json").read_text(encoding="utf-8")
     assert "signature_inverse" in search
     assert "LocalFeatures" in search
-    assert all(
-        not entry["location"].startswith("offset_coded_signatures/")
+    assert any(
+        entry["location"].startswith("offset_coded_signatures/")
         for entry in json.loads(search)["items"]
     )
-    assert not (site / "offset_coded_signatures").exists()
+    assert (site / "offset_coded_signatures" / "index.html").exists()
 
 
 def test_docs_workflow_runs_the_validated_commands() -> None:

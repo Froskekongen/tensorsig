@@ -16,7 +16,7 @@ from torch import Tensor
 
 from ._lie_quotients.compiler import LieQuotientPlan
 from ._lie_quotients.rules import OffsetAlphabet, ProjectedAlphabet
-from .word_program import (
+from ._word_program import (
     _WordLogReadout,
     _WordProgram,
     _compile_word_log_readout,

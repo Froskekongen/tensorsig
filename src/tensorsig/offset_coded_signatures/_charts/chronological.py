@@ -15,9 +15,14 @@ from .colored_descent import (
     ribbon_dimension,
     temporal_standard_indices,
 )
-from .coordinates import WordSelection
-from .offset_patterns import symmetric_run_channel_tuples
-from .word_program import _compile_word_program, evaluate_word_program
+from ..coordinates import WordSelection
+from ..offset_patterns import (
+    symmetric_run_channel_tuples,
+)
+from .._word_program import (
+    _compile_word_program,
+    evaluate_word_program,
+)
 
 
 @dataclass(frozen=True, eq=False, init=False)

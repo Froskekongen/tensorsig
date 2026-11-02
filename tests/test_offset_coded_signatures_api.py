@@ -80,7 +80,6 @@ def _flat_word_indices(words: torch.Tensor, width: int) -> torch.Tensor:
 
 def test_public_surface_contains_only_the_clean_plan_api() -> None:
     expected = {
-        "augmentations",
         "codes",
         "coordinates",
         "layers",
@@ -502,7 +501,7 @@ def test_rank_tolerance_controls_numerical_chart_discovery() -> None:
 
 
 def test_rank_tolerance_is_applied_to_the_global_singular_spectrum_once() -> None:
-    from tensorsig.offset_coded_signatures.primitive_chart import (
+    from tensorsig.offset_coded_signatures._charts.primitive import (
         _ordered_independent_rows,
         _rank_revealing_subspaces,
     )

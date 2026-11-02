@@ -23,7 +23,7 @@ from .offset_patterns import (
     symmetric_run_channel_tuples,
     validate_offset_filter_args,
 )
-from .utils import validate_local_signature_args
+from .windows import validate_local_signature_args
 
 
 RawSignatureScale = Literal["signature", "support"]

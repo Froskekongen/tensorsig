@@ -6,7 +6,7 @@ import torch
 
 from tensorsig.classical.signatures import signature
 from tensorsig.offset_coded_signatures.codes import OffsetCode
-from tensorsig.offset_coded_signatures.colored_descent import (
+from tensorsig.offset_coded_signatures._charts.colored_descent import (
     bounded_gap_count,
     cut_rank_target,
     generic_scalar_dimension,

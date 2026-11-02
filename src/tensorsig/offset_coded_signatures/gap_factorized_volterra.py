@@ -11,7 +11,7 @@ from torch import Tensor
 from tensorsig.tensor_ops.linear import contract_features_with_readout
 
 from .plans import PolynomialPlan
-from .utils import validate_path_points
+from .windows import validate_path_points
 from .windows import increment_windows
 
 

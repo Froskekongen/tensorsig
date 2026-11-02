@@ -4,22 +4,22 @@ import math
 import pytest
 import torch
 
-from tensorsig.offset_coded_signatures.chronological_words import (
+from tensorsig.offset_coded_signatures._charts.chronological import (
     _admissible_words,
     _compile_chronological_level,
     _compile_chronological_levels,
 )
-from tensorsig.offset_coded_signatures.colored_descent import (
+from tensorsig.offset_coded_signatures._charts.colored_descent import (
     cut_rank_target,
     generic_scalar_dimension,
     generic_scalar_dimensions,
     ribbon_dimension,
 )
 from tensorsig.offset_coded_signatures.coordinates import WordSelection
-from tensorsig.offset_coded_signatures.increment_signature import (
-    signature_levels_from_increment_windows,
+from tensorsig.tensor_ops.series import (
+    signature_levels_from_increments,
 )
-from tensorsig.offset_coded_signatures.word_program import (
+from tensorsig.offset_coded_signatures._word_program import (
     _compile_word_program,
     append_word_state,
     evaluate_word_program,
@@ -108,7 +108,7 @@ def _dense_words(windows, code, words):
     leading = windows.shape[:-2]
     lifted = (windows[..., :, :, None] * code[:, None, :]).flatten(-2)
     width = lifted.shape[-1]
-    levels = signature_levels_from_increment_windows(
+    levels = signature_levels_from_increments(
         lifted.reshape(-1, 1, *lifted.shape[-2:]),
         max_depth=max(map(len, words)),
     )

@@ -496,7 +496,7 @@ def test_fused_hvp_is_an_explicit_capability_refusal(tmp_path, monkeypatch):
 def test_auto_benchmark_passes_actual_derivative_order_and_records_selection(
     tmp_path, monkeypatch, inference_only
 ):
-    from tensorsig.offset_coded_signatures.window_logsignature import WindowSelection
+    from tensorsig.offset_coded_signatures.windows import WindowSelection
 
     seen = []
 
@@ -540,7 +540,7 @@ def test_auto_benchmark_passes_actual_derivative_order_and_records_selection(
 
 
 def test_auto_second_order_checks_its_own_linear_vjp(tmp_path, monkeypatch):
-    from tensorsig.offset_coded_signatures.window_logsignature import WindowSelection
+    from tensorsig.offset_coded_signatures.windows import WindowSelection
 
     class WrongVJP(torch.autograd.Function):
         @staticmethod

@@ -7,7 +7,7 @@ from tensorsig.offset_coded_signatures.codes import AlphabetMap, OffsetCode
 from tensorsig.offset_coded_signatures.layers import LocalFeatures
 from tensorsig.offset_coded_signatures.plans import LocalRealization
 from tensorsig.offset_coded_signatures.windows import increment_windows
-from tensorsig.offset_coded_signatures.sliding import (
+from tensorsig.offset_coded_signatures._sliding import (
     _rolling_coded_signature_levels,
 )
 from tensorsig.tensor_ops.series import unflatten_signature_levels

@@ -1,14 +1,13 @@
 import pytest
 import torch
 
-from tensorsig.offset_coded_signatures.augmentations import (
+from tensorsig.augmentations import (
     CausalFIRAugmentation,
-    CausalWindowedLogSignature,
     PairwiseProductAugmentation,
     causal_fir,
 )
 from tensorsig.algebra.lyndon import logsigdim_words
-from tensorsig.classical.windows import windowed_log_signature
+from tensorsig.classical.windows import WindowedLogSignature, windowed_log_signature
 
 
 def test_causal_fir_matches_manual_lag_and_padding_convention() -> None:
@@ -128,22 +127,15 @@ def test_path_augmentations_compose_with_sequential() -> None:
     assert composed(path).shape == (2, 8, products.out_channels)
 
 
-def test_causal_windowed_logsignature_shapes_and_gradients() -> None:
+def test_augmented_windowed_logsignature_shapes_and_gradients() -> None:
     torch.manual_seed(1)
     path = torch.randn(2, 14, 2, dtype=torch.float64, requires_grad=True)
     fir = CausalFIRAugmentation(2, 3, 4, bias=False).double()
-    module = CausalWindowedLogSignature(
-        fir,
-        depth=2,
-        window_size=5,
-        hop_size=2,
-        mode="words",
-    )
+    transform = WindowedLogSignature(depth=2, window_size=5, hop_size=2)
+    module = torch.nn.Sequential(fir, torch.nn.Identity(), transform)
 
     output = module(path)
-    expected_windows = 1 + (path.shape[1] - module.window_size) // module.hop_size
-    assert module.embedded_channels == 5
-    assert module.signature_channels == 5
+    expected_windows = 1 + (path.shape[1] - transform.window_size) // transform.hop_size
     assert output.shape == (2, expected_windows, logsigdim_words(5, 2))
 
     output.square().sum().backward()
@@ -153,19 +145,13 @@ def test_causal_windowed_logsignature_shapes_and_gradients() -> None:
     assert path.grad.abs().sum() > 0
 
 
-def test_causal_windowed_logsignature_composes_pairwise_products_and_bias() -> None:
+def test_windowed_logsignature_composes_pairwise_products_and_bias() -> None:
     torch.manual_seed(2)
     path = torch.randn(1, 10, 2, dtype=torch.float64)
     fir = CausalFIRAugmentation(2, 3, 2, bias=True).double()
     products = PairwiseProductAugmentation(fir.out_channels)
-    module = CausalWindowedLogSignature(
-        fir,
-        depth=2,
-        window_size=4,
-        hop_size=3,
-        pairwise=products,
-        mode="hall",
-    )
+    transform = WindowedLogSignature(depth=2, window_size=4, hop_size=3, mode="hall")
+    module = torch.nn.Sequential(fir, products, transform)
 
     output = module(path)
     expected = windowed_log_signature(
@@ -175,9 +161,7 @@ def test_causal_windowed_logsignature_composes_pairwise_products_and_bias() -> N
         hop_size=3,
         mode="hall",
     )
-    expected_windows = 1 + (path.shape[1] - module.window_size) // module.hop_size
-    assert module.embedded_channels == 5
-    assert module.signature_channels == 15
+    expected_windows = 1 + (path.shape[1] - transform.window_size) // transform.hop_size
     assert output.shape == (1, expected_windows, logsigdim_words(15, 2))
     torch.testing.assert_close(output, expected)
 
@@ -185,3 +169,29 @@ def test_causal_windowed_logsignature_composes_pairwise_products_and_bias() -> N
     assert fir.weight.grad is not None
     assert fir.bias is not None and fir.bias.grad is not None
     assert fir.bias.grad.abs().sum() > 0
+
+
+@pytest.mark.parametrize("mode", ["words", "hall"])
+def test_windowed_logsignature_without_augmentations(mode: str) -> None:
+    path = torch.randn(2, 7, 2, dtype=torch.float64)
+    module = WindowedLogSignature(2, 3, mode=mode)
+    torch.testing.assert_close(
+        module(path), windowed_log_signature(path, 2, 3, 1, mode=mode)
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"depth": 0},
+        {"window_size": 1},
+        {"hop_size": 0},
+        {"depth": True},
+        {"window_size": 2.5},
+        {"mode": "unsupported"},
+    ],
+)
+def test_windowed_logsignature_validates_configuration(kwargs: dict) -> None:
+    settings = {"depth": 2, "window_size": 3, **kwargs}
+    with pytest.raises(ValueError):
+        WindowedLogSignature(**settings)
