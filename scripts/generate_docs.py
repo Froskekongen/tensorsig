@@ -13,6 +13,8 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -481,17 +483,31 @@ def write_generated_tree(
 
 
 def main() -> None:
-    """Generate documentation without modifying its maintained sources."""
+    """Generate and strictly build the site, optionally opening a local preview."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument(
+        "--serve", action="store_true", help="Serve the built docs and open a browser"
+    )
     args = parser.parse_args()
 
     api = discover_api_model()
     model = build_page_model(api)
     guides = render_guides()
     write_generated_tree(model, guides, args.output, args.config)
-    print(f"Generated {len(model.pages)} API pages in {args.output}")
+    print(f"Generated {len(model.pages)} API pages in {args.output}", flush=True)
+    zensical = [sys.executable, "-m", "zensical"]
+    config = str(args.config.resolve())
+    subprocess.run(
+        [*zensical, "build", "--clean", "--strict", "-f", config],
+        cwd=ROOT,
+        check=True,
+    )
+    if args.serve:
+        subprocess.run(
+            [*zensical, "serve", "--open", "-f", config], cwd=ROOT, check=True
+        )
 
 
 if __name__ == "__main__":

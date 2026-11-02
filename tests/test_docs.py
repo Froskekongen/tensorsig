@@ -462,18 +462,13 @@ def test_generated_docs_build_with_zensical_in_strict_mode(tmp_path: Path) -> No
     output = tmp_path / "generated-docs"
     config = tmp_path / ".generated-site.yml"
     site = tmp_path / "site"
-    guides = render_guides()
-    write_generated_tree(build_page_model(discover_api_model()), guides, output, config)
-
     subprocess.run(
         [
             sys.executable,
-            "-m",
-            "zensical",
-            "build",
-            "--clean",
-            "--strict",
-            "-f",
+            str(ROOT / "scripts/generate_docs.py"),
+            "--output",
+            str(output),
+            "--config",
             str(config),
         ],
         cwd=ROOT,
@@ -523,9 +518,53 @@ def test_docs_workflow_runs_the_validated_commands() -> None:
     commands = (
         "uv sync --locked --only-group docs --no-install-project",
         "uv run --no-sync python scripts/generate_docs.py",
-        "uv run --no-sync zensical build --clean --strict -f .generated-site.yml",
     )
     positions = [workflow.index(command) for command in commands]
     assert positions == sorted(positions)
+    assert "zensical build" not in workflow
     assert "pull_request:" in workflow
     assert "if: github.event_name == 'release'" in workflow
+
+
+@pytest.mark.parametrize("build_fails", [False, True])
+def test_preview_only_starts_after_successful_strict_build(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, build_fails: bool
+) -> None:
+    from scripts import generate_docs
+
+    config = tmp_path / ".generated-site.yml"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "generate_docs.py",
+            "--output",
+            str(tmp_path / "generated-docs"),
+            "--config",
+            str(config),
+            "--serve",
+        ],
+    )
+    calls = []
+    original_run = subprocess.run
+
+    def run(command, **kwargs):
+        if command[:3] != [sys.executable, "-m", "zensical"]:
+            return original_run(command, **kwargs)
+        calls.append(command)
+        assert kwargs == {"cwd": ROOT, "check": True}
+        if build_fails:
+            raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(generate_docs.subprocess, "run", run)
+    if build_fails:
+        with pytest.raises(subprocess.CalledProcessError):
+            generate_docs.main()
+    else:
+        generate_docs.main()
+    prefix = [sys.executable, "-m", "zensical"]
+    assert calls[0] == [*prefix, "build", "--clean", "--strict", "-f", str(config)]
+    if build_fails:
+        assert len(calls) == 1
+    else:
+        assert calls[1:] == [[*prefix, "serve", "--open", "-f", str(config)]]
