@@ -1,6 +1,6 @@
 [project]
 name = "tensorsig"
-version = "0.1.0"
+version = "0.1.1"
 description = "Differentiable tensor signatures, offset-coded signatures, and log-signatures for PyTorch."
 readme = "README.md"
 requires-python = ">=3.14"
