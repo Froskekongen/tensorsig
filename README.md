@@ -68,15 +68,7 @@ shows these constructions and their input conventions. Offset-coded windows
 count increments; classical windows count points. Path augmentations are shared
 across both families and run before window extraction.
 
-## Citing
-
-If you use `tensorsig`, please cite it as software. Cite the version you used;
-for version `0.1.0`, the plain-text citation is:
-
-> Aune, E. (2026). tensorsig (Version 0.1.0) [Computer software]. Zenodo.
-> https://doi.org/10.5281/zenodo.23886748
-
-BibTeX:
+## Citation
 
 ```bibtex
 @software{aune2026tensorsig,
@@ -90,13 +82,12 @@ BibTeX:
 }
 ```
 
-For other releases, use the corresponding version-specific DOI from
-[Zenodo](https://doi.org/10.5281/zenodo.23886747). To refer to the library
-independently of a version, use the concept DOI
-[`10.5281/zenodo.23886747`](https://doi.org/10.5281/zenodo.23886747).
-Citation metadata is also provided in
-[`CITATION.cff`](https://github.com/Froskekongen/tensorsig/blob/main/CITATION.cff),
-which GitHub exposes through **Cite this repository**.
+```text
+Aune, E. (2026). tensorsig (Version 0.1.0) [Computer software]. Zenodo.
+https://doi.org/10.5281/zenodo.23886748
+```
+
+See [CITATION.cff](https://github.com/Froskekongen/tensorsig/blob/main/CITATION.cff).
 
 ## Development
 
