@@ -68,7 +68,8 @@ shows these constructions and their input conventions. Offset-coded windows
 count increments; classical windows count points. Path augmentations are shared
 across both families and run before window extraction.
 
-## Citation
+## Citing
+If you use this package in your research, please cite as follows:
 
 ```bibtex
 @software{aune2026tensorsig,
