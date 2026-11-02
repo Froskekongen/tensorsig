@@ -70,14 +70,33 @@ across both families and run before window extraction.
 
 ## Citing
 
-If you use `tensorsig`, cite the software version or commit you used. Citation
-metadata is provided in
-[`CITATION.cff`](https://github.com/Froskekongen/tensorsig/blob/main/CITATION.cff),
-which GitHub exposes through **Cite this repository** in APA and BibTeX formats.
+If you use `tensorsig`, please cite it as software. Cite the version you used;
+for version `0.1.0`, the plain-text citation is:
 
-Zenodo DOI links will be added after the first archived release. For
-reproducible work, use that release's version-specific DOI; use the concept
-DOI when referring to `tensorsig` independently of a particular version.
+> Aune, E. (2026). tensorsig (Version 0.1.0) [Computer software]. Zenodo.
+> https://doi.org/10.5281/zenodo.23886748
+
+BibTeX:
+
+```bibtex
+@software{aune2026tensorsig,
+  author    = {Aune, Erlend},
+  title     = {tensorsig},
+  version   = {0.1.0},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23886748},
+  url       = {https://doi.org/10.5281/zenodo.23886748}
+}
+```
+
+For other releases, use the corresponding version-specific DOI from
+[Zenodo](https://doi.org/10.5281/zenodo.23886747). To refer to the library
+independently of a version, use the concept DOI
+[`10.5281/zenodo.23886747`](https://doi.org/10.5281/zenodo.23886747).
+Citation metadata is also provided in
+[`CITATION.cff`](https://github.com/Froskekongen/tensorsig/blob/main/CITATION.cff),
+which GitHub exposes through **Cite this repository**.
 
 ## Development
 
