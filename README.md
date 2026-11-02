@@ -85,13 +85,20 @@ uv run ruff format --check .
 uv run pytest -q
 ```
 
-Generate, preview, and build the documentation with:
+Generate and strictly build the complete HTML documentation with:
 
 ```console
 uv run python scripts/generate_docs.py
-uv run zensical serve -f .generated-site.yml
-uv run zensical build --clean --strict -f .generated-site.yml
 ```
+
+To build, start a local preview, and open it in your browser:
+
+```console
+uv run python scripts/generate_docs.py --serve
+```
+
+The HTML site is written to `site/`. Stop the preview with Ctrl+C. After editing
+Python guides or docstrings, rerun the script to regenerate the documentation.
 
 Validate a prepared release with `scripts/release.sh --check X.Y.Z`, then publish
 it from clean `main` with `scripts/release.sh X.Y.Z`. Keep the package version and

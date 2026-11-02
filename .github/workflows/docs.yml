@@ -44,11 +44,8 @@ jobs:
       - name: Install docs dependencies only
         run: uv sync --locked --only-group docs --no-install-project
 
-      - name: Generate documentation
-        run: uv run --no-sync python scripts/generate_docs.py
-
       - name: Build documentation
-        run: uv run --no-sync zensical build --clean --strict -f .generated-site.yml
+        run: uv run --no-sync python scripts/generate_docs.py
 
       - name: Setup Pages
         if: github.event_name == 'release'
