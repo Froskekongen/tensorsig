@@ -11,6 +11,8 @@ from functools import lru_cache
 
 import torch
 
+from ..tensor_ops.products import _sparse_bilinear
+
 from .bch_coefficients import bch_coeffs
 from .hall import hall_basis, logsigdim
 from .hall_projection import (
@@ -211,11 +213,12 @@ class SparseBCH:
     def _bracket(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         if self._output_idx.numel() == 0:
             return (x + y) * 0
-        contrib = x[..., self._left_idx] * y[..., self._right_idx] * self._sparse_vals
-        return torch.zeros_like(x).scatter_add(
-            -1,
-            self._output_idx.expand_as(contrib),
-            contrib,
+        return _sparse_bilinear(
+            x,
+            y,
+            (self._left_idx, self._right_idx, self._output_idx),
+            self._sparse_vals,
+            self.dim,
         )
 
     def bracket(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:

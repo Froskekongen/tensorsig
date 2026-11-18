@@ -113,7 +113,7 @@ torch.testing.assert_close(
 # ## Advanced runtime and offline analysis
 #
 # Use `windows.WindowLogSignature` when you already have a `LieQuotientPlan`
-# and need explicit independent, rolling, or scan algorithms. It consumes
+# and need explicit independent, tiled, rolling, or scan algorithms. It consumes
 # **increments**, and returns the abstract quotient coordinates. In contrast,
 # `LocalFeatures` consumes **path points** and returns its plan's local chart.
 # These coordinate systems need not have the same dimension.
@@ -127,12 +127,20 @@ quotient_plan = compile_lie_quotient(
 runtime = WindowLogSignature(quotient_plan, window=3)
 quotient_values = runtime(path.diff(dim=1), algorithm="direct")
 assert quotient_values.shape == (1, 3, quotient_plan.dimension)
+torch.testing.assert_close(
+    runtime(path.diff(dim=1), algorithm="tiled"), quotient_values
+)
 
 # %% [markdown]
 # `WindowLogSignature` generates raw Pascal codes for a certified projected
 # alphabet. Its default is different from `OffsetCode.pascal`, which
 # orthonormalizes by default. Do not compare coordinates from different codes
 # without the corresponding basis conversion.
+#
+# `algorithm="tiled"` reuses prefixes and suffixes of adjacent tiles for
+# overlapping windows. It supports the built-in raw Pascal code and
+# Pascal-shift-invariant quotients through depth three. Set `chunk_windows`
+# to limit the windows evaluated together.
 #
 # | Advanced task | Module |
 # | --- | --- |

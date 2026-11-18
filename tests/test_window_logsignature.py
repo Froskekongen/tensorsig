@@ -4,6 +4,8 @@ import pytest
 import torch
 
 from tensorsig.offset_coded_signatures.quotients import (
+    ChannelSupport,
+    DependenceGraph,
     LieQuotient,
     OffsetAlphabet,
     ProjectedAlphabet,
@@ -13,7 +15,9 @@ from tensorsig.offset_coded_signatures.quotients import (
 from tensorsig.offset_coded_signatures.windows import WindowLogSignature
 
 
-@pytest.mark.parametrize("algorithm", ["auto", "pbw", "active", "rolling", "scan"])
+@pytest.mark.parametrize(
+    "algorithm", ["auto", "pbw", "active", "rolling", "scan", "tiled"]
+)
 def test_stream_algorithms_and_second_derivatives(algorithm):
     plan = compile_lie_quotient(
         LieQuotient(TemporalDegree(1)), ProjectedAlphabet.newton(2, 2), 3
@@ -42,6 +46,63 @@ def test_stream_algorithms_and_second_derivatives(algorithm):
     selection = runtime.select(x, algorithm=algorithm, derivative_order=2)
     assert selection.derivative_order == 2
     assert selection == runtime.select(x * 0, algorithm=algorithm, derivative_order=2)
+
+
+@pytest.mark.parametrize("depth", [1, 2, 3])
+@pytest.mark.parametrize("temporal_cap", [False, True])
+def test_tiled_rebases_partial_tiles_at_nondividing_stride(depth, temporal_cap):
+    rules = [DependenceGraph(((0, 1), (1, 2)))]
+    if temporal_cap:
+        rules.append(TemporalDegree(2))
+    plan = compile_lie_quotient(
+        LieQuotient(*rules),
+        ProjectedAlphabet.newton(3, 3),
+        depth,
+    )
+    runtime = WindowLogSignature(plan, 11)
+    x = torch.randn(2, 3, 38, dtype=torch.float64).transpose(1, 2) * 0.01
+    expected = runtime(x, stride=5, algorithm="tensor")
+    torch.testing.assert_close(runtime(x, stride=5, algorithm="tiled"), expected)
+    torch.testing.assert_close(
+        runtime(x, stride=5, algorithm="tiled", chunk_windows=2), expected
+    )
+    assert runtime.select(x).algorithm == "direct"
+
+
+def test_tiled_keeps_empty_quotient_connected_to_input():
+    plan = compile_lie_quotient(
+        LieQuotient(ChannelSupport(0)), ProjectedAlphabet.newton(2, 2), 3
+    )
+    x = torch.rand(2, 9, 2, requires_grad=True)
+    y = WindowLogSignature(plan, 5)(x, algorithm="tiled")
+    assert y.shape == (2, 5, 0)
+    assert not torch.autograd.grad(y.sum(), x)[0].any()
+
+
+def test_tiled_respects_cpu_autocast():
+    plan = compile_lie_quotient(
+        LieQuotient(TemporalDegree(1)), ProjectedAlphabet.newton(2, 2), 3
+    )
+    x = torch.rand(2, 21, 2) * 0.01
+    runtime = WindowLogSignature(plan, 12)
+    expected = WindowLogSignature(plan, 12)(x, stride=5, algorithm="tiled")
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        actual = runtime(x, stride=5, algorithm="tiled")
+    torch.testing.assert_close(actual, expected)
+    torch.testing.assert_close(runtime(x, stride=5, algorithm="tiled"), expected)
+
+
+def test_tiled_requires_a_supported_pascal_plan():
+    x = torch.rand(1, 9, 2)
+    alphabet = ProjectedAlphabet.newton(2, 2)
+    custom_plan = compile_lie_quotient(LieQuotient(), alphabet, 3)
+    with pytest.raises(ValueError, match="certified default Pascal"):
+        WindowLogSignature(custom_plan, 5, offset_code=torch.ones(5, 2)).select(
+            x, algorithm="tiled"
+        )
+    deep_plan = compile_lie_quotient(LieQuotient(), alphabet, 4)
+    with pytest.raises(ValueError, match="depths one through three"):
+        WindowLogSignature(deep_plan, 5).select(x, algorithm="tiled")
 
 
 def test_arbitrary_code_gradients_and_explicit_capability_errors():

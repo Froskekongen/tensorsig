@@ -6,7 +6,33 @@ from math import comb
 
 import torch
 
+from .._lie_quotients.rules import (
+    ChannelMultiplicity,
+    ChannelSupport,
+    DependenceGraph,
+    ProjectedAlphabet,
+    TemporalDegree,
+)
 from .._lie_quotients.trace_compiler import TraceBasisElement
+
+
+def _validate_pascal_plan(plan, window):
+    alphabet = plan.alphabet
+    if not isinstance(alphabet, ProjectedAlphabet):
+        raise ValueError("Rolling evaluation requires a ProjectedAlphabet.")
+    if alphabet.temporal_degrees != tuple(range(alphabet.code_dim)):
+        raise ValueError("Use ProjectedAlphabet.newton for raw Pascal codes.")
+    if alphabet.code_dim > window:
+        raise ValueError("code_dim must not exceed window.")
+    allowed = (TemporalDegree, ChannelMultiplicity, ChannelSupport, DependenceGraph)
+    if any(type(rule) not in allowed for rule in plan.quotient.rules):
+        raise ValueError("Quotient rule has no certified Pascal-shift invariance.")
+
+
+def _pascal_embeddings(code, generator_map, channels):
+    return torch.einsum(
+        "rp,cpd->rcd", code, generator_map.unflatten(0, (channels, code.shape[-1]))
+    )
 
 
 def pascal_transport(plan, shift=-1):
@@ -78,20 +104,63 @@ def pascal_transport(plan, shift=-1):
     return rows
 
 
+def _bind_sparse_rows(rows, like):
+    triples = [(i, j, float(v)) for i, row in enumerate(rows) for j, v in row.items()]
+    source = torch.tensor(
+        [i for i, _, _ in triples], device=like.device, dtype=torch.long
+    )
+    target = torch.tensor(
+        [j for _, j, _ in triples], device=like.device, dtype=torch.long
+    )
+    values = like.new_tensor([v for _, _, v in triples])
+    return source, target, values
+
+
+class VariablePascalShift:
+    """Apply an integer Pascal shift per state using a single sparse correction map."""
+
+    def __init__(self, plan):
+        rows = pascal_transport(plan, 1)
+        for i, row in enumerate(rows):
+            row[i] = row.get(i, Fraction()) - 1
+            if not row[i]:
+                del row[i]
+        self.source, self.target, self.values = _bind_sparse_rows(
+            rows, plan.generator_map
+        )
+        # The correction raises temporal degree, which bounds its nilpotency.
+        max_degree = (plan.alphabet.code_dim - 1) * plan.max_depth
+        temporal_caps = [
+            rule.maximum
+            for rule in plan.quotient.rules
+            if isinstance(rule, TemporalDegree)
+        ]
+        self.order = min(max_degree, *temporal_caps) if temporal_caps else max_degree
+        if not self.source.numel():
+            self.order = 0
+
+    def __call__(self, state, steps):
+        # Horner form of (I + N)^steps. This also covers negative integer steps.
+        shifted = state
+        steps = steps.to(dtype=torch.promote_types(state.dtype, torch.float32))
+        for order in range(self.order, 0, -1):
+            factor = ((steps - (order - 1)) / order).unsqueeze(-1)
+            contribution = (shifted[..., self.source] * self.values * factor).to(
+                state.dtype
+            )
+            shifted = state.scatter_add(
+                -1, self.target.expand_as(contribution), contribution
+            )
+        return shifted
+
+
 class Transport:
     """Two runtime realizations of the same exact grade-preserving linear map."""
 
     def __init__(self, plan, rows):
         device, dtype = plan.generator_map.device, plan.generator_map.dtype
-        triples = [
-            (i, j, float(v)) for i, row in enumerate(rows) for j, v in row.items()
-        ]
-        self.source = torch.tensor([i for i, _, _ in triples], device=device)
-        self.target = torch.tensor([j for _, j, _ in triples], device=device)
-        self.source = self.source.long()
-        self.target = self.target.long()
-        self.values = torch.tensor(
-            [v for _, _, v in triples], device=device, dtype=dtype
+        self.source, self.target, self.values = _bind_sparse_rows(
+            rows, plan.generator_map
         )
         self.blocks = []
         for grade in range(1, plan.max_depth + 1):

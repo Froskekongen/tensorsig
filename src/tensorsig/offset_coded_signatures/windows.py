@@ -5,7 +5,7 @@ Local plans consume increments with shape
 increments, and extraction uses only valid windows without padding.
 
 ``WindowLogSignature`` evaluates a ``LieQuotientPlan`` directly in its abstract
-quotient basis, with explicit independent-window and rolling algorithms. It
+quotient basis, with explicit independent-window, tiled and rolling algorithms. It
 consumes increments, whereas ``layers.LocalFeatures`` consumes path points and
 returns a compiled local chart. Use ``LocalFeatures`` for the usual PyTorch
 feature pipeline and this runtime when controlling quotient algorithms.
@@ -201,7 +201,10 @@ class WindowLogSignature:
 
     A projected alphabet without ``offset_code`` uses certified raw Pascal
     codes. A supplied code tensor supports independent windows and gradients
-    in that tensor. Rolling transport requires the certified default code.
+    in that tensor. Pascal transport requires the certified default code.
+    Use ``algorithm="tiled"`` to reuse tile prefixes and suffixes for depth-one
+    through depth-three Pascal-stable quotients. For tiled evaluation,
+    ``chunk_windows`` limits the windows handled together per call.
     ``derivative_order`` is selection metadata, not a switch that disables
     autograd. The default is 1; use 2 when requesting higher-order derivatives.
     Automatic choices use fixed schedules; choose an explicit algorithm to set
@@ -253,6 +256,7 @@ class WindowLogSignature:
         self._offset_code = offset_code
         self._pascal_codes = {}
         self._rolling = {}
+        self._tiled = {}
         self._auto_graph = None
         if self._pascal and plan.alphabet.code_dim == 2 and plan.max_depth == 3:
             if plan.quotient == LieQuotient(TemporalDegree(1)):
@@ -297,7 +301,7 @@ class WindowLogSignature:
             _positive_integer(chunk_windows, "chunk_windows")
         independent = {"direct", "pbw", "tensor", "active"}
         rolling = {"rolling", "scan"}
-        if algorithm not in independent | rolling | {"auto"}:
+        if algorithm not in independent | rolling | {"auto", "tiled"}:
             raise ValueError(f"Unknown window algorithm: {algorithm!r}.")
         reason = "explicit override"
         if algorithm == "auto":
@@ -371,6 +375,18 @@ class WindowLogSignature:
             raise ValueError(
                 "backend and shift_backend apply only to rolling and scan algorithms."
             )
+        if algorithm == "tiled":
+            if not self._pascal:
+                raise ValueError(
+                    "The tiled algorithm requires the certified default Pascal code."
+                )
+            if self.plan.max_depth > 3:
+                raise ValueError(
+                    "The tiled algorithm supports depths one through three."
+                )
+            from .rolling_logsignature._compile import _validate_pascal_plan
+
+            _validate_pascal_plan(self.plan, self.window)
         return WindowSelection(
             algorithm, derivative_order, backend, chunk_windows, reason, shift_backend
         )
@@ -398,6 +414,19 @@ class WindowLogSignature:
             shift_backend=shift_backend,
             chunk_windows=chunk_windows,
         )
+        if selected.algorithm == "tiled":
+            if refresh_every is not None:
+                raise ValueError("refresh_every applies only to rolling algorithms.")
+            key = (increments.device, increments.dtype)
+            evaluator = self._tiled.get(key)
+            if evaluator is None:
+                from .rolling_logsignature._tiled import TiledLogSignature
+
+                assert self._offset_code is not None
+                bound = self.plan.to(device=increments.device, dtype=increments.dtype)
+                evaluator = TiledLogSignature(bound, self._offset_code.to(increments))
+                self._tiled[key] = evaluator
+            return evaluator(increments, stride, selected.chunk_windows)
         if selected.algorithm in {"direct", "pbw", "tensor", "active"}:
             if refresh_every is not None:
                 raise ValueError("refresh_every applies only to rolling algorithms.")

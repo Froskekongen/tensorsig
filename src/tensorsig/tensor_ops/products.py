@@ -77,6 +77,21 @@ def _sum_tensor_products(x: Tensor, y: Tensor, *, shared_dims: int) -> Tensor:
     return result.reshape((*shared[:-1], *x_axes, *y_axes))
 
 
+def _sparse_bilinear(
+    x: Tensor,
+    y: Tensor,
+    indices: tuple[Tensor, Tensor, Tensor],
+    weights: Tensor,
+    out_width: int,
+) -> Tensor:
+    """Contract indexed products into output coordinates along the last axis."""
+    left, right, target = indices
+    terms = x[..., left] * y[..., right] * weights
+    return terms.new_zeros(*terms.shape[:-1], out_width).scatter_add(
+        -1, target.expand_as(terms), terms
+    )
+
+
 def lie_bracket(
     x: Tensor,
     y: Tensor,

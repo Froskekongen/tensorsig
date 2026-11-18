@@ -793,7 +793,7 @@ def test_independent_benchmark_candidates_share_the_public_evaluator(monkeypatch
         return evaluate
 
     monkeypatch.setattr(benchmark, "WindowLogSignature", construct)
-    compiled = SimpleNamespace(plan=object(), window=3)
+    compiled = SimpleNamespace(plan=SimpleNamespace(max_depth=3), window=3)
     args = SimpleNamespace(
         stride=2,
         hvp=True,
@@ -811,6 +811,8 @@ def test_independent_benchmark_candidates_share_the_public_evaluator(monkeypatch
         assert calls[-1] == dict(
             algorithm=method, stride=2, derivative_order=2, chunk_windows=4
         )
+    assert candidates["tiled"](token) is token
+    assert calls[-1] == dict(algorithm="tiled", stride=2, derivative_order=2)
     assert created == [(compiled.plan, 3)]
     assert candidates["auto"] is candidates["tensor_sized"]
     assert "active_rolling" not in candidates

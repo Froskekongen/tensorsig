@@ -9,17 +9,15 @@ from .._lie_quotients.compiler import (
     LieQuotientPlan,
     quotient_log_signature_from_increment_windows,
 )
-from .._lie_quotients.rules import (
-    ChannelMultiplicity,
-    ChannelSupport,
-    DependenceGraph,
-    ProjectedAlphabet,
-    TemporalDegree,
-)
 from ..codes import _positive_integer
 from ..windows import unfold_increments
 from ._bch import DegreeOneBCH
-from ._compile import Transport, pascal_transport
+from ._compile import (
+    Transport,
+    _pascal_embeddings,
+    _validate_pascal_plan,
+    pascal_transport,
+)
 from ._program import BCHProgram
 from ._scan import optimized_scan_interval, prepare_powers
 from ._joint import general_bch_program, joint_program
@@ -44,16 +42,8 @@ class RollingLogSignature:
 
     def __init__(self, plan: LieQuotientPlan, window: int):
         _positive_integer(window, "window")
+        _validate_pascal_plan(plan, window)
         alphabet = plan.alphabet
-        if not isinstance(alphabet, ProjectedAlphabet):
-            raise ValueError("Rolling evaluation requires a ProjectedAlphabet.")
-        if alphabet.temporal_degrees != tuple(range(alphabet.code_dim)):
-            raise ValueError("Use ProjectedAlphabet.newton for raw Pascal codes.")
-        if alphabet.code_dim > window:
-            raise ValueError("code_dim must not exceed window.")
-        allowed = (TemporalDegree, ChannelMultiplicity, ChannelSupport, DependenceGraph)
-        if any(type(rule) not in allowed for rule in plan.quotient.rules):
-            raise ValueError("Quotient rule has no certified Pascal-shift invariance.")
         self.plan = plan
         self.window = window
         self.code = torch.tensor(
@@ -65,12 +55,8 @@ class RollingLogSignature:
         self.transport = Transport(plan, self.transport_rows)
         self.append = DegreeOneBCH(plan)
         # Precontract lifting with the quotient generator map once per offset.
-        self.embeddings = torch.einsum(
-            "rp,cpd->rcd",
-            self.code,
-            plan.generator_map.reshape(
-                alphabet.in_channels, alphabet.code_dim, plan.dimension
-            ),
+        self.embeddings = _pascal_embeddings(
+            self.code, plan.generator_map, alphabet.in_channels
         )
 
         self._programs = {}

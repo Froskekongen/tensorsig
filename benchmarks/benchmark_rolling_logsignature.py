@@ -375,7 +375,8 @@ def make_candidates(compiled, args):
                 x, algorithm=m, stride=args.stride, derivative_order=derivative_order
             )
         )
-        for method in ("direct", "pbw", "tensor", "active")
+        for method in ("direct", "pbw", "tensor", "active", "tiled")
+        if method != "tiled" or compiled.plan.max_depth <= 3
     }
     for name in ("auto", "tensor_sized"):
         candidates[name] = public
