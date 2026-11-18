@@ -26,7 +26,7 @@ from functools import lru_cache
 import torch
 from torch import Tensor
 
-from .products import tensor_product
+from .products import _sum_tensor_products, tensor_product
 
 
 __all__ = [
@@ -377,6 +377,82 @@ def batch_restricted_exp(input: Tensor, depth: int) -> list[Tensor]:
     return ret
 
 
+def _can_contract_signature(increments: Tensor, depth: int) -> bool:
+    device = increments.device.type
+    if device not in {"cpu", "cuda", "mps"}:
+        return False
+    if increments.dtype not in {torch.float32, torch.float64}:
+        return False
+    # Backward through small matrix operands is slower than the scan on Metal.
+    if (
+        device == "mps"
+        and depth <= 3
+        and increments.shape[-1] <= 4
+        and increments.requires_grad
+        and torch.is_grad_enabled()
+    ):
+        return False
+    # The elementwise recurrence uses full FP32 even when CUDA matmul allows TF32.
+    # Its backend precision getter cannot be traced by Dynamo.
+    if device == "cuda" and increments.dtype == torch.float32:
+        return not torch.compiler.is_compiling() and (
+            torch.backends.cuda.matmul.fp32_precision in {"none", "ieee"}
+        )
+    return True
+
+
+def _batch_signature_levels_from_increments(
+    increments: Tensor, depth: int, *, stream: bool = False
+) -> list[Tensor]:
+    """Compute batched signature levels with optional prefix output."""
+    first_exp = batch_restricted_exp(increments[:, 0], depth=depth)
+    if increments.shape[1] == 1 and not stream:
+        return first_exp
+
+    prefixes = [increments.cumsum(dim=1)]
+    if depth > 1:
+        divided = torch.stack([increments / i for i in range(2, depth + 1)], dim=0)
+        remaining = increments[:, 1:]
+        for index in range(1, depth):
+            current = prefixes[0][:, :-1] + divided[index - 1, :, 1:]
+            for j in range(index - 1):
+                current = prefixes[j + 1][:, :-1] + tensor_product(
+                    current, divided[index - j - 2, :, 1:], shared_dims=2
+                )
+            if (
+                not stream
+                and index == depth - 1
+                and _can_contract_signature(increments, depth)
+            ):
+                # Only the final value of the top level is needed.
+                if (
+                    increments.device.type == "cpu"
+                    and increments.dtype == torch.float32
+                ):
+                    # Sum the first segment and the remaining products before
+                    # rounding. Large segment terms can cancel in this sum.
+                    first = tensor_product(
+                        first_exp[index - 1].double(),
+                        divided[index - 1, :, 0].double(),
+                        shared_dims=1,
+                    )
+                    top = first + _sum_tensor_products(
+                        current.double(), remaining.double(), shared_dims=2
+                    )
+                    top = top.to(increments.dtype)
+                else:
+                    top = first_exp[index] + _sum_tensor_products(
+                        current, remaining, shared_dims=2
+                    )
+                return [level[:, -1] for level in prefixes] + [top]
+
+            delta = tensor_product(current, remaining, shared_dims=2)
+            delta = torch.cat([first_exp[index].unsqueeze(1), delta], dim=1)
+            prefixes.append(delta.cumsum(dim=1))
+
+    return prefixes if stream else [level[:, -1] for level in prefixes]
+
+
 def signature_levels_from_increments(
     increments: Tensor,
     max_depth: int,
@@ -407,9 +483,18 @@ def signature_levels_from_increments(
         raise ValueError("increments must have positive step and width axes.")
     leading_shape = increments.shape[:-2]
     flattened = increments.reshape(-1, steps, width)
-    levels = batch_restricted_exp(flattened[:, 0], depth=max_depth)
-    for increment in flattened[:, 1:].unbind(dim=1):
-        levels = _batch_mult_fused_restricted_exp(increment, levels)
+    # Keep the degree-(max_depth - 1) history within the size of a single
+    # degree-max_depth state. Longer paths use the bounded-state recurrence.
+    if (
+        1 < max_depth
+        and steps <= width
+        and _can_contract_signature(flattened, max_depth)
+    ):
+        levels = _batch_signature_levels_from_increments(flattened, max_depth)
+    else:
+        levels = batch_restricted_exp(flattened[:, 0], depth=max_depth)
+        for increment in flattened[:, 1:].unbind(dim=1):
+            levels = _batch_mult_fused_restricted_exp(increment, levels)
     return [level.reshape(*leading_shape, *level.shape[1:]) for level in levels]
 
 

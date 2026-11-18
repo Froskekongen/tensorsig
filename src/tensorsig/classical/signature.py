@@ -1,11 +1,11 @@
 import torch
 from torch import Tensor
 
-from ..tensor_ops.products import tensor_product
 from ..tensor_ops.series import (
+    _batch_signature_levels_from_increments,
     _infer_width_from_signature_dim,
     _unflatten_stream_signature,
-    batch_restricted_exp,
+    flatten_signature_levels,
     signature_inverse,
     signature_multiply,
 )
@@ -385,46 +385,10 @@ def _batch_signature_from_increments(
     """
     if path_increments.ndim != 3:
         raise ValueError("path_increments must have shape (batch, steps, features).")
-    batch_size, steps, n_features = path_increments.shape
-    if steps < 1:
+    if path_increments.shape[1] < 1:
         raise ValueError("path_increments must contain at least one step.")
 
-    stacked = [torch.cumsum(path_increments, dim=1)]
-
-    exp_term = batch_restricted_exp(path_increments[:, 0], depth=depth)
-
-    if depth > 1:
-        path_increment_divided = torch.stack(
-            [path_increments / i for i in range(2, depth + 1)], dim=0
-        )
-
-        for depth_index in range(1, depth):
-            current = (
-                stacked[0][:, :-1] + path_increment_divided[depth_index - 1, :, 1:]
-            )
-            for j in range(depth_index - 1):
-                current = stacked[j + 1][:, :-1] + tensor_product(
-                    current,
-                    path_increment_divided[depth_index - j - 2, :, 1:],
-                    shared_dims=2,
-                )
-            current = tensor_product(current, path_increments[:, 1:], shared_dims=2)
-            current = torch.cat([exp_term[depth_index].unsqueeze(1), current], dim=1)
-            stacked.append(torch.cumsum(current, dim=1))
-
-    if not stream:
-        return torch.cat(
-            [
-                c[:, -1].reshape(batch_size, n_features ** (1 + idx))
-                for idx, c in enumerate(stacked)
-            ],
-            dim=1,
-        )
-    else:
-        return torch.cat(
-            [
-                r.reshape(batch_size, steps, n_features ** (1 + idx))
-                for idx, r in enumerate(stacked)
-            ],
-            dim=2,
-        )
+    levels = _batch_signature_levels_from_increments(
+        path_increments, depth, stream=stream
+    )
+    return flatten_signature_levels(levels)

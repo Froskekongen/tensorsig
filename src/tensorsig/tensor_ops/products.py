@@ -6,6 +6,9 @@ operation therefore covers scalar, ordinary, batched, and batched-sequence
 products without shape-specific aliases.
 """
 
+from math import prod
+
+import torch
 from torch import Tensor
 
 
@@ -59,6 +62,19 @@ def tensor_product(
     x_view = x.reshape((*x.shape, *([1] * y_axes)))
     y_view = y.reshape((*y_shared, *([1] * x_axes), *y.shape[shared_dims:]))
     return x_view * y_view
+
+
+def _sum_tensor_products(x: Tensor, y: Tensor, *, shared_dims: int) -> Tensor:
+    """Sum outer products along the last of the matching shared axes."""
+    shared = x.shape[:shared_dims]
+    x_axes, y_axes = x.shape[shared_dims:], y.shape[shared_dims:]
+    left = x.reshape(*shared, prod(x_axes))
+    right = y.reshape(*shared, prod(y_axes))
+
+    # Preserve the input precision of the elementwise recurrence under AMP.
+    with torch.autocast(x.device.type, enabled=False):
+        result = left.transpose(-2, -1) @ right
+    return result.reshape((*shared[:-1], *x_axes, *y_axes))
 
 
 def lie_bracket(
